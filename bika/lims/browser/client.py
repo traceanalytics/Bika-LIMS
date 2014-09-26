@@ -25,6 +25,7 @@ from bika.lims.utils import isActive
 from bika.lims.utils import t
 from bika.lims.utils import tmpID
 from bika.lims.utils import to_utf8
+from bika.lims.utils import title_link
 from bika.lims.vocabularies import CatalogVocabulary
 from DateTime import DateTime
 from plone.app.content.browser.interfaces import IFolderContentsView
@@ -307,6 +308,65 @@ class ClientSamplesView(SamplesView):
             review_state['columns'].remove('Client')
             review_states.append(review_state)
         self.review_states = review_states
+
+
+class ClientSamplingRoundsView(BikaListingView):
+    """This is displayed in the Templates client action,
+       in the "Sampling Rounds" tab
+    """
+
+    def __init__(self, context, request):
+        super(ClientSamplingRoundsView, self).__init__(context, request)
+        self.catalog = 'portal_catalog'
+        self.contentFilter = {
+            'portal_type': 'SamplingRound',
+            'sort_on':'sortable_title',
+            'path': {
+                'query': '/'.join(self.context.getPhysicalPath()),
+                'level': 0
+            },
+        }
+        self.show_sort_column = False
+        self.show_select_row = False
+        self.show_select_column = True
+        self.pagesize = 50
+        self.form_id = 'samplingrounds'
+        self.icon = self.portal_url + '/++resource++bika.lims.images/analysisrequest_big.png'
+        self.title = _('Sampling Rounds')
+        self.description = ''
+        self.columns = {
+            'title': {
+                'title': _('Title'),
+                'index': 'sortable_title'
+            },
+        }
+        self.review_states = [{
+            'id':'default',
+            'title': _('All'),
+            'contentFilter': {},
+            'transitions': [],
+            'columns': ['title',]
+        }]
+
+    def __call__(self):
+        mtool = getToolByName(self.context, 'portal_membership')
+        checkPermission = mtool.checkPermission
+        if checkPermission(AddSamplingRound, self.context):
+            self.context_actions[_('Add')] = {
+                'url': 'createObject?type_name=SamplingRound',
+                'icon': '++resource++bika.lims.images/add.png'
+            }
+        return super(ClientSamplingRoundsView, self).__call__()
+
+    def folderitems(self):
+        items = BikaListingView.folderitems(self)
+        for x in range(len(items)):
+            if not items[x].has_key('obj'): continue
+            obj = items[x]['obj']
+            items[x]['title'] = obj.Title()
+            items[x]['replace']['title'] = title_link(obj)
+        return items
+
 
 class ClientAnalysisProfilesView(BikaListingView):
     """This is displayed in the Profiles client action,

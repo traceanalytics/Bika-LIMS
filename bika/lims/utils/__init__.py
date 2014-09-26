@@ -409,6 +409,10 @@ def currency_format(context, locale):
     return format
 
 
+def title_link(obj):
+    return "<a href='%s'>%s</a>" % (obj.absolute_url(), obj.Title())
+
+
 def getHiddenAttributesForClass(classname):
     try:
         registry = queryUtility(IRegistry)

@@ -329,6 +329,8 @@
    <bound-workflow workflow_id="bika_inactive_workflow"/>
   </type>
 
+  <type type_id="SamplingRound"/>
+
   <type type_id="SamplesFolder"/>
 
   <type type_id="SRTemplate"/>

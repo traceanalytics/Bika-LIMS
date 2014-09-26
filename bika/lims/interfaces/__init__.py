@@ -136,6 +136,11 @@ class ISamplingDeviations(Interface):
     """Sampling Deviations"""
 
 
+class ISamplingRound(Interface):
+
+    """Sampling Round"""
+
+
 class IWorksheetFolder(Interface):
 
     """WorksheetFolder"""
