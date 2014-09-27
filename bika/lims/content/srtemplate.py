@@ -2,43 +2,96 @@
     Sample Round Template
 """
 
+import sys
+
+from Products.Archetypes.public import *
+
 from AccessControl import ClassSecurityInfo
 from bika.lims import bikaMessageFactory as _
-from bika.lims.utils import t
+from bika.lims.browser.fields import DurationField
+from bika.lims.browser.widgets import DurationWidget
 from bika.lims.browser.widgets import RecordsWidget as BikaRecordsWidget
+from bika.lims.browser.widgets import ReferenceWidget as BikaReferenceWidget
 from bika.lims.browser.widgets import SRTemplateARTemplatesWidget
 from bika.lims.config import PROJECTNAME
 from bika.lims.content.bikaschema import BikaSchema
 from bika.lims.idserver import renameAfterCreation
-from Products.Archetypes.public import *
+from bika.lims.interfaces import ISRTemplate
+from bika.lims.utils import getUsers
+from plone.indexer import indexer
+from Products.Archetypes.references import HoldingReference
 from Products.ATExtensions.field.records import RecordsField
+from Products.CMFCore import permissions
 from Products.CMFCore.utils import getToolByName
+from zope.interface import implements
+
+
+SamplingFrequency = DurationField(
+    'SamplingFrequency',
+    vocabulary_display_path_bound=sys.maxint,
+    widget=DurationWidget(
+        label=_('Sampling Frequency'),
+        description=_('Indicate the amount of time between recurring '
+            'field trips'),
+    ),
+)
+
+Sampler = StringField(
+    'Sampler',
+    vocabulary='getSamplers',
+    vocabulary_display_path_bound=sys.maxint,
+    widget=SelectionWidget(
+        label=_('Default Sampler'),
+        description=_('Select the default Sampler to be assigned'),
+    ),
+)
+
+Department = ReferenceField(
+    'Department',
+    allowed_types=('Department',),
+    referenceClass=HoldingReference,
+    relationship='SRTemplateDepartment',
+    vocabulary_display_path_bound=sys.maxint,
+    widget=BikaReferenceWidget(
+        label=_('Department'),
+        description=_('Select the lab Department responsible'),
+        catalog_name='bika_setup_catalog',
+        showOn=True,
+    )
+)
+
+Instructions = TextField(
+    'Instructions',
+    searchable=True,
+    default_content_type='text/plain',
+    allowed_content_types=('text/plain'),
+    default_output_type="text/plain",
+    widget=TextAreaWidget(
+        label=_('Sampling Instructions')
+    ),
+)
+
+ARTemplates = ReferenceField(
+    'ARTemplates',
+    schemata='AR Templates',
+    required=1,
+    multiValued=1,
+    allowed_types=('ARTemplate',),
+    relationship='SRTemplateARTemplate',
+    widget=SRTemplateARTemplatesWidget(
+        label=_('AR Templates'),
+        description=_('Select AR Templates to include'),
+    )
+)
 
 
 schema = BikaSchema.copy() + Schema((
-    TextField('Instructions',
-        searchable = True,
-        default_content_type = 'text/plain',
-        allowed_content_types= ('text/plain'),
-        default_output_type="text/plain",
-        widget = TextAreaWidget(
-            label = "Instructions",
-            append_only = True,
-        ),
-    ),
-    ReferenceField('ARTemplates',
-        schemata = 'AR Templates',
-        required = 1,
-        multiValued = 1,
-        allowed_types = ('ARTemplate',),
-        relationship = 'SRTemplateARTemplate',
-        widget = SRTemplateARTemplatesWidget(
-            label = "AR Templates",
-            description = "Select AR Templates to include",
-        )
-    ),
-),
-)
+    SamplingFrequency,
+    Sampler,
+    Department,
+    Instructions,
+    ARTemplates,
+))
 
 
 schema['description'].widget.visible = True
@@ -57,5 +110,14 @@ class SRTemplate(BaseContent):
     def _renameAfterCreation(self, check_auto_id=False):
         renameAfterCreation(self)
 
+    def getSamplers(self):
+        users = getUsers(self, ['Sampler', 'LabManager', 'Manager'])
+        return users
+
 
 registerType(SRTemplate, PROJECTNAME)
+
+
+@indexer(ISRTemplate)
+def ParentUID(instance):
+    return instance.aq_parent.UID()

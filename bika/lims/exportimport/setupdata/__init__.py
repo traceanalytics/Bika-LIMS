@@ -49,6 +49,12 @@ def create_supply_order_item(context, product_title, quantity):
     renameAfterCreation(obj)
 
 
+def build_duration(values):
+    values = [int(o.strip()) for o in values.split(',')]
+    res = dict(zip(['days', 'hours', 'minutes'], values))
+    return res
+
+
 def Float(thing):
     try:
         f = float(thing)
@@ -399,10 +405,10 @@ class Lab_Products(WorksheetImporter):
         # Iterate through the rows
         for row in self.get_rows(3):
             # Check for required columns
-            check_for_required_columns('SRTemplate', row, [
+            check_for_required_columns('LabProduct', row, [
                 'title', 'volume', 'unit', 'price'
             ])
-            # Create the SRTemplate object
+            # Create the LabProduct object
             obj = _createObjectByType('LabProduct', folder, tmpID())
             # Apply the row values
             obj.edit(
@@ -1846,6 +1852,66 @@ class Invoice_Batches(WorksheetImporter):
                 BatchEndDate=row['end'],
             )
             renameAfterCreation(obj)
+
+
+class SR_Templates(WorksheetImporter):
+
+    def Import(self):
+        context = self.context
+        # Refer to the default folder for SRTemplates
+        default_folder = self.context.bika_setup.bika_srtemplates
+        # Iterate through the rows
+        for row in self.get_rows(3):
+            # Check for required columns
+            check_for_required_columns('SRTemplate', row, ['title'])
+            # Get the folder that should contain the template
+            client_title = row['client_title']
+            if client_title:
+                folder = lookup(context, 'Client', getName=client_title)
+            else:
+                folder = default_folder
+            # Lookup the department
+            department = lookup(
+                context, 'Department', Title=row['department_title']
+            )
+            # Create the SRTemplate object
+            obj = _createObjectByType('SRTemplate', folder, tmpID())
+            # Apply the row values
+            obj.edit(
+                title=row['title'],
+                description=row['description'],
+                Instructions=row['instructions'],
+                Sampler=row['default_sampler_username'],
+                SamplingFrequency=build_duration(row['sampling_frequency']),
+                Department=department,
+            )
+            # Prevent WebDAV errors by unmarking creation flag
+            obj.unmarkCreationFlag()
+            # Rename the new object
+            renameAfterCreation(obj)
+
+
+class SRTs_ARs(WorksheetImporter):
+
+    def Import(self):
+        context = self.context
+        # Iterate through the rows
+        for row in self.get_rows(3):
+            # Check for required columns
+            check_for_required_columns(
+                'SRTemplate ARTemplates', row, ['sr_template', 'ar_template']
+            )
+            # Lookup the required templates
+            srtemplate = lookup(
+                context, 'SRTemplate', Title=row['sr_template']
+            )
+            artemplate = lookup(
+                context, 'ARTemplate', Title=row['ar_template']
+            )
+            # Attach the ARTemplates to the SRTemplate
+            artemplates = srtemplate.getARTemplates()
+            artemplates.append(artemplate)
+            srtemplate.setARTemplates(artemplates)
 
 
 class AR_Priorities(WorksheetImporter):

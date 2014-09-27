@@ -339,6 +339,11 @@ class ISampleTypes(Interface):
     ""
 
 
+class ISRTemplate(Interface):
+
+    ""
+
+
 class ISRTemplates(Interface):
 
     ""
