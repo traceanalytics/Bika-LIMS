@@ -20,6 +20,7 @@ from bika.lims.config import PROJECTNAME
 from bika.lims.content.bikaschema import BikaFolderSchema
 from bika.lims.idserver import renameAfterCreation
 from bika.lims.interfaces import ISamplingRound
+from bika.lims.utils import getUsers
 
 
 Template = ReferenceField(
@@ -109,6 +110,10 @@ class SamplingRound(ATFolder):
         """ Returns true if the SamplingRound is in 'open' state
         """
         return True
+
+    def getSamplers(self):
+        users = getUsers(self, ['Sampler', 'LabManager', 'Manager'])
+        return users
 
 
 registerType(SamplingRound, PROJECTNAME)
