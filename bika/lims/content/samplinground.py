@@ -23,8 +23,8 @@ from bika.lims.interfaces import ISamplingRound
 from bika.lims.utils import getUsers
 
 
-Template = ReferenceField(
-    'Template',
+SRTemplate = ReferenceField(
+    'SRTemplate',
     allowed_types=('SRTemplate',),
     referenceClass=HoldingReference,
     relationship='SamplingRoundSRTemplate',
@@ -96,7 +96,7 @@ AnalysisRequests = ReferenceField(
 
 
 schema = BikaFolderSchema.copy() + Schema((
-    Template,
+    SRTemplate,
     SamplingFrequency,
     Sampler,
     Department,
