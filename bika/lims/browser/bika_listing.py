@@ -76,6 +76,8 @@ class WorkflowAction:
         form = self.request.form
         came_from = "workflow_action"
         action = form.get(came_from, '')
+        if type(action) in (list, tuple):
+            action = action[0]
         if not action:
             came_from = "workflow_action_button"
             action = form.get('workflow_action_id', '')
@@ -161,7 +163,7 @@ class WorkflowAction:
             # Use default bika_listing.py/WorkflowAction for other transitions
             method_name = 'workflow_action_' + action
             method = getattr(self, method_name, False)
-            if not callable(method):
+            if method and not callable(method):
                 raise Exception("Shouldn't Happen: %s.%s not callable." %
                                 (self, method_name))
             if method:

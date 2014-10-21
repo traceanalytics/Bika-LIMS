@@ -31,7 +31,7 @@
 
     <thead 
         tal:define="
-          fieldnames python:widget_visibility.get('add-by-row', {}).get('visible', []);
+          fieldnames python:view.get_fields_with_visibility('visible', mode='add-by-row');
           fieldnames python: [f for f in fieldnames if f not in prominentfieldnames];
           fieldnames python: [f for f in fieldnames if f not in hiddenprominentfieldnames]">
     <tr class="tableHeaderRowByRow">

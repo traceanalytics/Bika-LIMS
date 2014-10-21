@@ -7,7 +7,7 @@ from bika.lims.browser.analysisrequest import AnalysisRequestViewView
 from bika.lims.browser.bika_listing import BikaListingView
 from bika.lims.content.analysisrequest import schema as AnalysisRequestSchema
 from bika.lims.interfaces import IAnalysisRequestAddView
-from bika.lims.utils import getHiddenAttributesForClass
+from bika.lims.utils import getHiddenAttributesForClass, dicts_to_dict
 from bika.lims.utils import t
 from bika.lims.utils import tmpID
 from bika.lims.utils.analysisrequest import create_analysisrequest
@@ -47,6 +47,27 @@ class AnalysisRequestAddView(AnalysisRequestViewView):
         self.request.set('disable_border', 1)
         return self.template()
 
+    def copy_to_new_specs(self):
+        specs = {}
+        copy_from = self.request.get('copy_from', "")
+        if not copy_from:
+            return {}
+        uids =  copy_from.split(",")
+
+        n = 0
+        for uid in uids:
+            proxies = self.bika_catalog(UID=uid)
+            rr = proxies[0].getObject().getResultsRange()
+            new_rr = []
+            for i, r in enumerate(rr):
+                s_uid = self.bika_setup_catalog(portal_type='AnalysisService',
+                                              getKeyword=r['keyword'])[0].UID
+                r['uid'] = s_uid
+                new_rr.append(r)
+            specs[n] = new_rr
+            n += 1
+        return json.dumps(specs)
+
     def getContacts(self):
         adapter = getAdapter(self.context.aq_parent, name='getContacts')
         return adapter()
@@ -60,6 +81,17 @@ class AnalysisRequestAddView(AnalysisRequestViewView):
                     or service.getSeparate():
                 ps.append(service.UID())
         return json.dumps(ps)
+
+    def get_fields_with_visibility(self, visibility, mode=None):
+        mode = mode if mode else 'add'
+        schema = self.context.Schema()
+        fields = []
+        for field in schema.fields():
+            isVisible = field.widget.isVisible
+            v = isVisible(self.context, mode, default='invisible', field=field)
+            if v == visibility:
+                fields.append(field)
+        return fields
 
 
 class SecondaryARSampleInfo(BrowserView):
@@ -86,12 +118,14 @@ class SecondaryARSampleInfo(BrowserView):
             return []
         sample = proxies[0].getObject()
         sample_schema = sample.Schema()
-        fields = [f for f in sample.viewableFields(sample)
-                  if f.widget.isVisible(sample, 'secondary') == 'disabled']
+        sample_fields = dict([(f.getName(), f) for f in sample_schema.fields()])
+        ar_schema = self.context.Schema()
+        ar_fields = [f.getName() for f in ar_schema.fields()
+                     if f.widget.isVisible(self.context, 'secondary') == 'disabled']
         ret = []
-        for field in fields:
-            if field in sample_schema:
-                fieldvalue = field.getAccessor(sample)
+        for fieldname in ar_fields:
+            if fieldname in sample_fields:
+                fieldvalue = sample_fields[fieldname].getAccessor(sample)()
                 if fieldvalue is None:
                     fieldvalue = ''
                 if hasattr(fieldvalue, 'Title'):
@@ -100,7 +134,7 @@ class SecondaryARSampleInfo(BrowserView):
                     fieldvalue = fieldvalue.strftime(self.date_format_short)
             else:
                 fieldvalue = ''
-            ret.append([field, fieldvalue])
+            ret.append([fieldname, fieldvalue])
         return json.dumps(ret)
 
 
@@ -215,6 +249,7 @@ class ajaxAnalysisRequestSubmit():
         # this flag triggers the status message
         new_profile = None
         # The actual submission
+        # fieldname == same as arnum == same as column ...
         for fieldname in fieldnames:
             # Get partitions from the form data
             if form_parts:
@@ -245,21 +280,26 @@ class ajaxAnalysisRequestSubmit():
             # Get the analyses from the form data
             analyses = values["Analyses"]
 
-            # Gather the specifications from the form data
-            # no defaults are applied here - the defaults should already be
-            # present in the form data
-            specifications = {}
-            for analysis in analyses:
-                for service_uid in analyses:
-                    min_element_name = "ar.%s.min.%s"%(fieldname, service_uid)
-                    max_element_name = "ar.%s.max.%s"%(fieldname, service_uid)
-                    error_element_name = "ar.%s.error.%s"%(fieldname, service_uid)
-                    if min_element_name in form:
-                        specifications[service_uid] = {
-                            "min": form[min_element_name],
-                            "max": form[max_element_name],
-                            "error": form[error_element_name]
-                        }
+            # Gather the specifications from the form
+            specs = json.loads(form['copy_to_new_specs']).get(str(fieldname), {})
+            if not specs:
+                specs = json.loads(form['specs']).get(str(fieldname), {})
+            if specs:
+                specs = dicts_to_dict(specs, 'keyword')
+            # Modify the spec with all manually entered values
+            for service_uid in analyses:
+                min_element_name = "ar.%s.min.%s" % (fieldname, service_uid)
+                max_element_name = "ar.%s.max.%s" % (fieldname, service_uid)
+                error_element_name = "ar.%s.error.%s" % (fieldname, service_uid)
+                service_keyword = bsc(UID=service_uid)[0].getKeyword
+                if min_element_name in form:
+                    if service_keyword not in specs:
+                        specs[service_keyword] = {}
+                    specs[service_keyword]["keyword"] = service_keyword
+                    specs[service_keyword]["min"] = form[min_element_name]
+                    specs[service_keyword]["max"] = form[max_element_name]
+                    specs[service_keyword]["error"] = form[error_element_name]
+
             # Selecting a template sets the hidden 'parts' field to template values.
             # Selecting a profile will allow ar_add.js to fill in the parts field.
             # The result is the same once we are here.
@@ -290,10 +330,10 @@ class ajaxAnalysisRequestSubmit():
                 client,
                 self.request,
                 resolved_values,
-                analyses,
-                partitions,
-                specifications,
-                prices
+                analyses=analyses,
+                partitions=partitions,
+                specifications=specs.values(),
+                prices=prices
             )
             #Add Headers
             for fieldname in headers.keys():

@@ -26,6 +26,7 @@ from Products.CMFCore.utils import getToolByName
 from zope.interface import implements
 
 
+<<<<<<< HEAD
 SamplingFrequency = DurationField(
     'SamplingFrequency',
     vocabulary_display_path_bound=sys.maxint,
