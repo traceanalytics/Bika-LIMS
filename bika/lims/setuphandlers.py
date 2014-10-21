@@ -589,6 +589,7 @@ class BikaGenerator:
         at.setCatalogsByType('AnalysisRequest', ['bika_catalog', 'portal_catalog'])
         at.setCatalogsByType('Sample', ['bika_catalog', 'portal_catalog'])
         at.setCatalogsByType('SamplePartition', ['bika_catalog', 'portal_catalog'])
+        at.setCatalogsByType('SamplingRound', ['bika_catalog', 'portal_catalog'])
         at.setCatalogsByType('ReferenceSample', ['bika_catalog', 'portal_catalog'])
         at.setCatalogsByType('Report', ['bika_catalog', ])
         at.setCatalogsByType('Worksheet', ['bika_catalog', 'portal_catalog'])

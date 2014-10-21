@@ -76,6 +76,7 @@ Department = ReferenceField(
 Instructions = TextField(
     'Instructions',
     searchable=True,
+    referenceClass=HoldingReference,
     default_content_type='text/plain',
     allowed_content_types=('text/plain'),
     default_output_type="text/plain",
@@ -85,6 +86,14 @@ Instructions = TextField(
     ),
 )
 
+AnalysisRequests = ReferenceField(
+    'AnalysisRequests',
+    multiValued=1,
+    schemata='Analysis Requests',
+    allowed_types=('AnalysisRequest',),
+    relationship='SamplingRoundAnalysisRequest',
+)
+
 
 schema = BikaFolderSchema.copy() + Schema((
     Template,
@@ -92,6 +101,7 @@ schema = BikaFolderSchema.copy() + Schema((
     Sampler,
     Department,
     Instructions,
+    AnalysisRequests,
 ))
 
 
@@ -112,8 +122,7 @@ class SamplingRound(ATFolder):
         return True
 
     def getSamplers(self):
-        users = getUsers(self, ['Sampler', 'LabManager', 'Manager'])
-        return users
+        return getUsers(self, ['Manager', 'LabManager', 'Sampler'], allow_empty=False)
 
 
 registerType(SamplingRound, PROJECTNAME)

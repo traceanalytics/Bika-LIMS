@@ -144,14 +144,14 @@ class ajaxAnalysisRequestSubmit():
         self.request = request
 
     def __call__(self):
-
+        context = self.context
         form = self.request.form
         plone.protect.CheckAuthenticator(self.request.form)
         plone.protect.PostOnly(self.request.form)
         came_from = 'came_from' in form and form['came_from'] or 'add'
-        wftool = getToolByName(self.context, 'portal_workflow')
-        uc = getToolByName(self.context, 'uid_catalog')
-        bsc = getToolByName(self.context, 'bika_setup_catalog')
+        wftool = getToolByName(context, 'portal_workflow')
+        uc = getToolByName(context, 'uid_catalog')
+        bsc = getToolByName(context, 'bika_setup_catalog')
         layout = form['layout']
 
         errors = {}
@@ -308,25 +308,35 @@ class ajaxAnalysisRequestSubmit():
                         ar.edit(fieldname=headers[fieldname])
 
             # Add the created analysis request to the list
-            ARs.append(ar.getId())
+            ARs.append(ar)
+        # Attach created AnalysisRequests to SamplingRound
+        if context.portal_type == 'SamplingRound':
+            rel = context.getAnalysisRequests()
+            rel = rel if rel else []
+            rel.extend([ar.UID() for ar in ARs])
+            context.setAnalysisRequests(rel)
         # Display the appropriate message after creation
         if len(ARs) > 1:
-            message = _("Analysis requests ${ARs} were successfully created.",
-                        mapping={'ARs': safe_unicode(', '.join(ARs))})
+            message = _(
+                "Analysis requests ${ARs} were successfully created.",
+                mapping={'ARs': safe_unicode(', '.join([ar.getId() for ar in ARs]))}
+            )
         else:
-            message = _("Analysis request ${AR} was successfully created.",
-                        mapping={'AR': safe_unicode(ARs[0])})
-        self.context.plone_utils.addPortalMessage(message, 'info')
+            message = _(
+                "Analysis request ${AR} was successfully created.",
+                mapping={'AR': safe_unicode(ARs[0].getId())}
+            )
+        context.plone_utils.addPortalMessage(message, 'info')
         # Automatic label printing
         # Won't print labels for Register on Secondary ARs
         new_ars = None
         if came_from == 'add':
-            new_ars = [ar for ar in ARs if ar[-2:] == '01']
-        if 'register' in self.context.bika_setup.getAutoPrintLabels() and new_ars:
+            new_ars = [ar.getId() for ar in ARs if ar.getId()[-2:] == '01']
+        if 'register' in context.bika_setup.getAutoPrintLabels() and new_ars:
             return json.dumps({
                 'success': message,
                 'labels': new_ars,
-                'labelsize': self.context.bika_setup.getAutoLabelSize()
+                'labelsize': context.bika_setup.getAutoLabelSize()
             })
         else:
             return json.dumps({'success': message})

@@ -4,7 +4,7 @@ from bika.lims.permissions import AddSupplyOrder
 
 def ObjectModifiedEventHandler(obj, event):
     """ Various types need automation on edit.
-    """
+    """    
     if not hasattr(obj, 'portal_type'):
         return
 

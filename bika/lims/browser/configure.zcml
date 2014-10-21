@@ -38,6 +38,7 @@
 
   <include package=".analysisrequest"/>
   <include package=".batch"/>
+  <include package=".samplinground"/>
 
   <include package=".fields"/>
   <include package=".widgets"/>

@@ -92,7 +92,7 @@
   <permission value="BIKA: Manage Samples"/>
  </action>
 
- <action title="SamplingRounds"
+ <action title="Sampling Rounds"
          action_id="samplingrounds"
          category="object"
          condition_expr=""

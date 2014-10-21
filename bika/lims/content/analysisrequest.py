@@ -1494,6 +1494,8 @@ class AnalysisRequest(BaseFolder):
     def getClient(self):
         if self.aq_parent.portal_type == 'Client':
             return self.aq_parent
+        if self.aq_parent.portal_type == 'SamplingRound':
+            return self.aq_parent.aq_parent
         return self.Schema()['Client'].get(self)
 
     def getClientPath(self):
