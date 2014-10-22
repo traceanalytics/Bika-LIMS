@@ -5,6 +5,8 @@ from Products.CMFCore.WorkflowCore import WorkflowException
 from bika.lims import bikaMessageFactory as _
 from bika.lims.utils import t, getUsers
 from bika.lims.browser.widgets.datetimewidget import DateTimeWidget
+from bika.lims.browser.widgets import DurationWidget
+from bika.lims.browser.fields import DurationField
 from bika.lims.config import PROJECTNAME
 from bika.lims.content.bikaschema import BikaSchema
 from bika.lims.interfaces import ISample
@@ -314,6 +316,32 @@ schema = BikaSchema.copy() + Schema((
                      'disposed':          {'view': 'visible', 'edit': 'invisible'},
                      },
             render_own_label=True,
+        ),
+    ),
+    DurationField(
+        'SamplingDuration',
+        mode="rw",
+        read_permission=permissions.View,
+        write_permission=permissions.ModifyPortalContent,
+        acquire=True,
+        vocabulary_display_path_bound=sys.maxint,
+        widget=DurationWidget(
+            label=_('Sampling Duration'),
+            description=_('Indicate the amount of spent collection the sample'),
+            render_own_label=True,
+            visible={
+                'edit': 'visible',
+                'view': 'visible',
+                'header_table': 'visible',
+                'sample_registered': {'view': 'invisible', 'edit': 'visible'},
+                'to_be_sampled':     {'view': 'visible', 'edit': 'visible'},
+                'sampled':           {'view': 'visible', 'edit': 'visible'},
+                'to_be_preserved':   {'view': 'visible', 'edit': 'visible'},
+                'sample_due':        {'view': 'visible', 'edit': 'visible'},
+                'sample_received':   {'view': 'visible', 'edit': 'invisible'},
+                'expired':           {'view': 'visible', 'edit': 'invisible'},
+                'disposed':          {'view': 'visible', 'edit': 'invisible'},
+            },
         ),
     ),
     StringField('Sampler',

@@ -99,6 +99,7 @@ Sample View
     Go to                             ${PLONEURL}/clients/client-1/samples
     page should contain               To Be Sampled
     Go to                             ${PLONEURL}/clients/client-1/H2O-0001
+    page should contain element       css=#archetypes-fieldname-SamplingDuration
     click element                     css=.label-state-to_be_sampled > a
     Click element                     css=a#workflow-transition-sample
     sleep                             1
