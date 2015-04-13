@@ -666,7 +666,11 @@ class AnalysisRequestPublishView(BrowserView):
             mime_msg['From'] = formataddr(
                 (encode_header(lab.getName()), lab.getEmailAddress()))
             mime_msg.preamble = 'This is a multi-part MIME message.'
-            msg_txt = MIMEText(results_html, _subtype='html')
+            image_safe_results_html = results_html
+            for(key, val) in self._images.items():
+                image_safe_results_html = image_safe_results_html.replace(key, val)
+
+            msg_txt = MIMEText(image_safe_results_html, _subtype='html')
             mime_msg.attach(msg_txt)
 
             to = []
