@@ -24,6 +24,7 @@ import glob, os, sys, traceback
 import urllib2
 import App
 import Globals
+import base64
 
 class AnalysisRequestPublishView(BrowserView):
     template = ViewPageTemplateFile("templates/analysisrequest_publish.pt")
@@ -32,6 +33,7 @@ class AnalysisRequestPublishView(BrowserView):
     _DEFAULT_TEMPLATE = 'default.pt'
     _publish = False
     _images = {}
+    _email_images = {}
 
     def __init__(self, context, request, publish=False):
         super(AnalysisRequestPublishView, self).__init__(context, request)
@@ -585,6 +587,10 @@ class AnalysisRequestPublishView(BrowserView):
         outfile.write(str(af.data))
         outfile.close()
         self._images[fileurl] = "file://"+outfilename
+        # Need to include a different URL for emails that use these images. Base64 Encode ensures
+        # Image is located in the email and not on the server, accessed by a direct link.
+        self._email_images[fileurl] = "data:image/png;base64,"+base64.b64encode(str(af.data))
+
         return attachment.absolute_url() + "/at_download/AttachmentFile"
 
     def publishFromPOST(self):
@@ -623,6 +629,10 @@ class AnalysisRequestPublishView(BrowserView):
         # Create the pdf report (will always be attached to the AR)
         pdf_outfile = join(out_path, out_fn + ".pdf") if out_path else None
         pdf_report = createPdf(htmlreport=results_html, outfile=pdf_outfile, images=self._images)
+
+        image_safe_results_html = results_html
+        for(key, val) in self._email_images.items():
+            image_safe_results_html = image_safe_results_html.replace(key, val)
 
         recipients = []
         contact = ar.getContact()
@@ -666,10 +676,6 @@ class AnalysisRequestPublishView(BrowserView):
             mime_msg['From'] = formataddr(
                 (encode_header(lab.getName()), lab.getEmailAddress()))
             mime_msg.preamble = 'This is a multi-part MIME message.'
-            image_safe_results_html = results_html
-            for(key, val) in self._images.items():
-                image_safe_results_html = image_safe_results_html.replace(key, val)
-
             msg_txt = MIMEText(image_safe_results_html, _subtype='html')
             mime_msg.attach(msg_txt)
 
@@ -714,7 +720,7 @@ class AnalysisRequestPublishView(BrowserView):
             mime_msg['From'] = formataddr(
             (encode_header(lab.getName()), lab.getEmailAddress()))
             mime_msg.preamble = 'This is a multi-part MIME message.'
-            msg_txt = MIMEText(results_html, _subtype='html')
+            msg_txt = MIMEText(image_safe_results_html, _subtype='html')
             mime_msg.attach(msg_txt)
             mime_msg['To'] = formatted
 
